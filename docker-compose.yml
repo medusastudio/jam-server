@@ -1,17 +1,5 @@
 version: '3.9'
 services:
-  nginx: 
-    image: nginx:latest
-    container_name: production_nginx
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    ports:
-      - 80:80
-      - 443:443
-    networks:
-      - jam_network
-    restart: always
-      
   registry_backend:
     image: registry:2
     container_name: registry_backend
@@ -21,7 +9,7 @@ services:
       - 8888:5000
     restart: always
     networks:
-      - jam_network
+      - registry_network
 
   registry_frontend:
     image: parabuzzle/craneoperator:latest
@@ -36,11 +24,74 @@ services:
       - USERNAME=medusa
       - PASSWORD=medusa
     networks:
-      - jam_network
+      - registry_network
     restart: always
     depends_on:
       - registry_backend
 
+  jam_backend:
+    build:
+      context: ${JAM_BACKEND_PATH}
+    image: ${REGISTRY_URL}/medusastudio/jam-backend
+    container_name: jam_backend
+    ports:
+      - 3000:3000
+    volumes:
+      - ${JAM_BACKEND_PATH}:/usr/src/app
+    networks:
+      - jam_network
+    depends_on:
+      - registry_backend
+
+  jam_frontend:
+    build:
+      context: ${JAM_FRONTEND_PATH}
+    image: ${REGISTRY_URL}/medusastudio/jam-frontend
+    container_name: jam_frontend
+    ports:
+      - 4200:4200
+    volumes:
+      - ${JAM_FRONTEND_PATH}:/usr/src/app
+    networks:
+      - jam_network
+    depends_on:
+      - registry_backend
+
+  nginx: 
+    image: nginx:latest
+    container_name: development_nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - registry_network
+      - jam_network
+    restart: always
+    depends_on:
+      - registry_backend
+      - registry_frontend
+      - jam_backend
+      - jam_frontend
+
+  postgres:
+    image: postgres:13.3
+    container_name: jam_postgres
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: '/var/lib/postgresql/data/pgdata'
+    volumes:
+      - .:/var/lib/postgresql/data
+    networks:
+      - jam_network
+
 networks:
   jam_network:
+    external: true
+  registry_network:
     external: true
