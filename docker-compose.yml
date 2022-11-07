@@ -4,7 +4,7 @@ services:
     image: registry:2
     container_name: registry_backend
     volumes:
-      - "/tmp/registry:/var/lib/registry"
+      - ./registry:/var/lib/registry
     ports:
       - 8888:5000
     restart: always
