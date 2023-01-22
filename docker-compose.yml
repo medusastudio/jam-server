@@ -39,6 +39,7 @@ services:
     restart: always
     volumes:
       - ${JAM_BACKEND_PATH}:/usr/src/app
+      - /usr/src/app/node_modules
     networks:
       - jam_network
     depends_on:
